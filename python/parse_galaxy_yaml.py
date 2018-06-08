@@ -93,7 +93,7 @@ def do_yaml(config_file, section, option, value, state='present', backup=False):
               print 'option changed'
             yaml_lines[index] = newline
             if option_changed:
-              # remove all possible option occurrences from the rest of the section
+               # remove all possible option occurrences from the rest of the section
                index = index + 1
                while index < len(yaml_lines):
                  line = yaml_lines[index]
