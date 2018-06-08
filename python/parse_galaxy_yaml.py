@@ -30,14 +30,14 @@ def cli_options():
 #______________________________________
 def match_opt(option, line):
   option = re.escape(option)
-  return re.match('( |\t)*%s( |\t)*(:|$)' % option, line) \
-      or re.match('#( |\t)*%s( |\t)*(:|$)' % option, line) \
-      or re.match(';( |\t)*%s( |\t)*(:|$)' % option, line)
+  return re.match('  ( |\t)*%s( |\t)*(:|$)' % option, line) \
+      or re.match('  #( |\t)*%s( |\t)*(:|$)' % option, line) \
+      or re.match('  ;( |\t)*%s( |\t)*(:|$)' % option, line)
 
 #______________________________________
 def match_active_opt(option, line):
   option = re.escape(option)
-  return re.match('( |\t)*%s( |\t)*(:|$)' % option, line)
+  return re.match('  ( |\t)*%s( |\t)*(:|$)' % option, line)
 
 #______________________________________
 def do_yaml(config_file, section, option, value, state='present', backup=False):
