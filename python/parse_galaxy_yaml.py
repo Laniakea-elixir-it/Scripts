@@ -117,7 +117,7 @@ def do_yaml(config_file, section, option, value, state='present', backup=False):
     yaml_lines.append('%s:\n' % section)
     yaml_lines.append('  %s: %s\n' % (option, value))
     changed = True
-    msg = 'section and option added'
+    print 'section and option added'
 
   # file is updated only if there are changes.
   if changed:
