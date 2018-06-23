@@ -20,9 +20,7 @@ now=$(date +"%b-%d-%y-%H%M%S")
 install_log="/var/log/galaxy/galaxy_tools_install_$now.log"
 install_pidfile='/var/log/galaxy/galaxy_tools_install.pid'
 #---
-postgresql_version='9.6'
-#---
-ephemeris_version='0.9.0'
+ephemeris_version='0.7.0'
 
 #________________________________
 # Get Distribution
@@ -43,7 +41,7 @@ function start_postgresql_vm {
     fi
   elif [[ $ID = "centos" ]]; then
       echo "[EL][VM] Check postgresql"
-      systemctl start postgresql-${postgresql_version}
+      systemctl start postgresql-9.6
   fi
 }
 
@@ -54,9 +52,9 @@ function start_postgresql_docker {
     service start postgresql
   elif [ "$ID" = "centos" ]; then
     echo "[EL][Docker] Check postgresql"
-    if [[ ! -f /var/lib/pgsql/${postgresql_version}/data/postmaster.pid ]]; then
+    if [[ ! -f /var/lib/pgsql/9.6/data/postmaster.pid ]]; then
       echo "Starting postgres on centos"
-      sudo -E -u postgres /usr/pgsql-${postgresql_version}/bin/pg_ctl -D /var/lib/pgsql/${postgresql_version}/data -w start
+      sudo -E -u postgres /usr/pgsql-9.6/bin/pg_ctl -D /var/lib/pgsql/9.6/data -w start
     fi
   fi
 
@@ -69,7 +67,7 @@ function check_postgres_status {
   if [[ $ID = "ubuntu" ]]; then
     echo 'placeholder'
   elif [ "$ID" = "centos" ]; then
-    /usr/pgsql-${postgresql_version}/bin/pg_isready -U "$PGUSER" -q
+    /usr/pgsql-9.6/bin/pg_isready -U "$PGUSER" -q
     DATA=$?
   fi
 
@@ -77,7 +75,7 @@ function check_postgres_status {
 
 function check_postgresql {
 
-  start_postgresql_docker
+  start_postgresql_vm
 
   check_postgres_status
 
@@ -172,7 +170,7 @@ done
 # install tools
 install_ephemeris
 
-shed-tools install -g "http://localhost:$PORT" -a $1 -t "$2"
+shed-install -g "http://localhost:$PORT" -a $1 -t "$2"
 
 exit_code=$?
 
@@ -183,13 +181,4 @@ fi
 # stop Galaxy
 echo "stopping Galaxy"
 sudo -E -u $GALAXY_USER $GALAXY/run.sh --stop-daemon --log-file=$install_log --pid-file=$install_pidfile
-
-# stop postgresql on docker. Keep it running on vm
-if [[ $ID = "ubuntu" ]]; then
-  echo "[Ubuntu][Docker] Stop postgresql."
-  service stop postgresql
-elif [[ $ID = "centos" ]]; then
-  echo "[EL][Docker] Stop postgresql"
-  sudo -E -u postgres /usr/pgsql-${postgresql_version}/bin/pg_ctl -D /var/lib/pgsql/${postgresql_version}/data stop
-fi
 
