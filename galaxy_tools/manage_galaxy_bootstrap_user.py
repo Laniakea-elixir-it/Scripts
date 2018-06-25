@@ -29,7 +29,7 @@ import argparse
 #______________________________________
 def cli_options():
     parser = argparse.ArgumentParser(description='Delete galaxy users')
-    parser.add_argument('-c', '--config-file', dest='config_file', help='Galaxy ini file')
+    parser.add_argument('-c', '--config-file', dest='config_file', help='Galaxy configuration file')
 
     subparsers = parser.add_subparsers(title="action", help='create or delete bootstrap users')
     parser_create = subparsers.add_parser('create', help='create a new bootstrap user')
