@@ -47,7 +47,6 @@ function start_postgresql_vm {
   fi
 }
 
-#________________________________
 function start_postgresql_docker {
 
   if [[ $ID = "ubuntu" ]]; then
@@ -63,7 +62,6 @@ function start_postgresql_docker {
 
 }
 
-#________________________________
 function check_postgres_status {
 
   PGUSER="${PGUSER:="postgres"}"
@@ -77,7 +75,6 @@ function check_postgres_status {
 
 }
 
-#________________________________
 function check_postgresql {
 
   start_postgresql_docker
@@ -121,15 +118,10 @@ function install_ephemeris {
 }
 
 #________________________________
-#________________________________
-#________________________________
 # clean logs
 echo "Clean logs"
 rm $install_log
 rm $install_pidfile
-
-# install tools
-install_ephemeris
 
 # ensure Galaxy is not running through supervisord
 if pgrep "supervisord" > /dev/null
@@ -153,13 +145,33 @@ sudo -E -u $GALAXY_USER touch $install_log
 # start Galaxy
 export PORT=8080
 echo "starting Galaxy"
-sudo -E -u $GALAXY_USER $GALAXY/run.sh -d $install_log --pidfile $install_pidfile  --http-timeout 3000
+sudo -E -u $GALAXY_USER $GALAXY/run.sh --daemon --log-file=$install_log --pid-file=$install_pidfile
 
 # wait galaxy to start
 galaxy_install_pid=`cat $install_pidfile`
-galaxy-wait -g http://localhost:$PORT -v --timeout 120
+echo $galaxy_install_pid
+
+while : ; do
+  tail -n 2 $install_log | grep -E -q "Removing PID file galaxy_install.pid|Daemon is already running"
+  if [ $? -eq 0 ] ; then
+    echo "Galaxy could not be started."
+    echo "More information about this failure may be found in the following log snippet from galaxy_install.log:"
+    echo "========================================"
+    tail -n 60 $install_log
+    echo "========================================"
+    echo $1
+    exit 1
+  fi
+  tail -n 2 $install_log | grep -q "Starting server in PID $galaxy_install_pid"
+  if [ $? -eq 0 ] ; then
+    echo "Galaxy is running."
+    break
+  fi
+done
 
 # install tools
+install_ephemeris
+
 shed-tools install -g "http://localhost:$PORT" -a $1 -t "$2"
 
 exit_code=$?
@@ -170,7 +182,7 @@ fi
 
 # stop Galaxy
 echo "stopping Galaxy"
-sudo -E -u $GALAXY_USER $GALAXY/run.sh --stop --pidfile $install_pidfile
+sudo -E -u $GALAXY_USER $GALAXY/run.sh --stop-daemon --log-file=$install_log --pid-file=$install_pidfile
 
 # stop postgresql on docker. Keep it running on vm
 if [[ $ID = "ubuntu" ]]; then
