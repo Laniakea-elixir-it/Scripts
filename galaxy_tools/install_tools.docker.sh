@@ -1,7 +1,6 @@
 #!/bin/bash
 
 # ELIXIR-ITALY
-# INDIGO-DataCloud
 # IBIOM-CNR
 #
 # Contributors:
@@ -123,6 +122,8 @@ function install_ephemeris {
 #________________________________
 #________________________________
 #________________________________
+# Main section
+
 # clean logs
 echo "Clean logs"
 rm $install_log
@@ -170,7 +171,7 @@ fi
 
 # stop Galaxy
 echo "stopping Galaxy"
-sudo -E -u $GALAXY_USER $GALAXY/run.sh --stop --pidfile $install_pidfile
+sudo -E -u $GALAXY_USER $GALAXY/run.sh --stop $install_pidfile
 
 # stop postgresql on docker. Keep it running on vm
 if [[ $ID = "ubuntu" ]]; then
@@ -178,6 +179,5 @@ if [[ $ID = "ubuntu" ]]; then
   service stop postgresql
 elif [[ $ID = "centos" ]]; then
   echo "[EL][Docker] Stop postgresql"
-  sudo -E -u postgres /usr/pgsql-${postgresql_version}/bin/pg_ctl -D /var/lib/pgsql/${postgresql_version}/data stop
+  sudo -Hiu postgres /usr/pgsql-${postgresql_version}/bin/pg_ctl -D /var/lib/pgsql/${postgresql_version}/data stop
 fi
-
