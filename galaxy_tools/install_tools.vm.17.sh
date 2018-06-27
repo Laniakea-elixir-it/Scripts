@@ -2,12 +2,13 @@
 
 # ELIXIR-ITALY
 # INDIGO-DataCloud
+# IBIOM-CNR
 #
 # Contributors:
 # author: Tangaro Marco
 # email: ma.tangaro@ibiom.cnr.it
 
-# Script based on install_tools_wrapper from B. Gruening and adpted to our ansible roles.
+# Script based on install_tools_wrapper from B. Gruening and adpted to our ansible roles.
 # https://raw.githubusercontent.com/bgruening/docker-galaxy-stable/master/galaxy/install_tools_wrapper.sh
 
 # Usage: install-tools GALAXY_ADMIN_API_KEY tool-list.yml
@@ -19,9 +20,7 @@ now=$(date +"%b-%d-%y-%H%M%S")
 install_log="/var/log/galaxy/galaxy_tools_install_$now.log"
 install_pidfile='/var/log/galaxy/galaxy_tools_install.pid'
 #---
-postgresql_version='9.6'
-#---
-ephemeris_version='0.9.0'
+ephemeris_version='0.7.0'
 
 #________________________________
 # Get Distribution
@@ -42,11 +41,10 @@ function start_postgresql_vm {
     fi
   elif [[ $ID = "centos" ]]; then
       echo "[EL][VM] Check postgresql"
-      systemctl start postgresql-${postgresql_version}
+      systemctl start postgresql-9.6
   fi
 }
 
-#________________________________
 function start_postgresql_docker {
 
   if [[ $ID = "ubuntu" ]]; then
@@ -54,15 +52,14 @@ function start_postgresql_docker {
     service start postgresql
   elif [ "$ID" = "centos" ]; then
     echo "[EL][Docker] Check postgresql"
-    if [[ ! -f /var/lib/pgsql/${postgresql_version}/data/postmaster.pid ]]; then
+    if [[ ! -f /var/lib/pgsql/9.6/data/postmaster.pid ]]; then
       echo "Starting postgres on centos"
-      sudo -E -u postgres /usr/pgsql-${postgresql_version}/bin/pg_ctl -D /var/lib/pgsql/${postgresql_version}/data -w start
+      sudo -E -u postgres /usr/pgsql-9.6/bin/pg_ctl -D /var/lib/pgsql/9.6/data -w start
     fi
   fi
 
 }
 
-#________________________________
 function check_postgres_status {
 
   PGUSER="${PGUSER:="postgres"}"
@@ -70,13 +67,12 @@ function check_postgres_status {
   if [[ $ID = "ubuntu" ]]; then
     echo 'placeholder'
   elif [ "$ID" = "centos" ]; then
-    /usr/pgsql-${postgresql_version}/bin/pg_isready -U "$PGUSER" -q
+    /usr/pgsql-9.6/bin/pg_isready -U "$PGUSER" -q
     DATA=$?
   fi
 
 }
 
-#________________________________
 function check_postgresql {
 
   start_postgresql_vm
@@ -105,7 +101,6 @@ function install_lsof {
   fi
 }
 
-#________________________________
 function check_lsof {
   type -P lsof &>/dev/null || { echo "lsof is not installed. Installing.."; install_lsof; }
 }
@@ -121,18 +116,10 @@ function install_ephemeris {
 }
 
 #________________________________
-#________________________________
-#________________________________
-#Main section
-
-#________________________________
 # clean logs
 echo "Clean logs"
 rm $install_log
 rm $install_pidfile
-
-# install tools
-install_ephemeris
 
 # ensure Galaxy is not running through supervisord
 if pgrep "supervisord" > /dev/null
@@ -156,14 +143,33 @@ sudo -E -u $GALAXY_USER touch $install_log
 # start Galaxy
 export PORT=8080
 echo "starting Galaxy"
-sudo -E -u $GALAXY_USER $GALAXY/run.sh -d $install_log --pidfile $install_pidfile  --http-timeout 3000
+sudo -E -u $GALAXY_USER $GALAXY/run.sh --daemon --log-file=$install_log --pid-file=$install_pidfile
 
 # wait galaxy to start
 galaxy_install_pid=`cat $install_pidfile`
 echo $galaxy_install_pid
-galaxy-wait -g http://localhost:$PORT -v --timeout 120
+
+while : ; do
+  tail -n 2 $install_log | grep -E -q "Removing PID file galaxy_install.pid|Daemon is already running"
+  if [ $? -eq 0 ] ; then
+    echo "Galaxy could not be started."
+    echo "More information about this failure may be found in the following log snippet from galaxy_install.log:"
+    echo "========================================"
+    tail -n 60 $install_log
+    echo "========================================"
+    echo $1
+    exit 1
+  fi
+  tail -n 2 $install_log | grep -q "Starting server in PID $galaxy_install_pid"
+  if [ $? -eq 0 ] ; then
+    echo "Galaxy is running."
+    break
+  fi
+done
 
 # install tools
+install_ephemeris
+
 shed-install -g "http://localhost:$PORT" -a $1 -t "$2"
 
 exit_code=$?
@@ -174,4 +180,5 @@ fi
 
 # stop Galaxy
 echo "stopping Galaxy"
-sudo -E -u $GALAXY_USER $GALAXY/run.sh --stop $install_pidfile
+sudo -E -u $GALAXY_USER $GALAXY/run.sh --stop-daemon --log-file=$install_log --pid-file=$install_pidfile
+

@@ -7,7 +7,7 @@
 # author: Tangaro Marco
 # email: ma.tangaro@ibiom.cnr.it
 
-# Script based on install_tools_wrapper from B. Gruening and adpted to our ansible roles.
+# Script based on install_tools_wrapper from B. Gruening and adpted to our ansible roles.
 # https://raw.githubusercontent.com/bgruening/docker-galaxy-stable/master/galaxy/install_tools_wrapper.sh
 
 # Usage: install-tools GALAXY_ADMIN_API_KEY tool-list.yml
