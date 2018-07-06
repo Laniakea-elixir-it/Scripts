@@ -34,8 +34,8 @@ function start_postgresql_vm {
 
   if [[ $ID = "ubuntu" ]]; then
     echo "[Ubuntu][VM] Check postgresql."
-    if [[ $VERSION_ID = "16.04" ]]; then
-      service start postgresql
+    if [[ $VERSION_ID = "14.04" ]]; then
+      service postgresql start
     else
       systemctl start postgresql
     fi
@@ -65,12 +65,12 @@ function check_postgres_status {
   PGUSER="${PGUSER:="postgres"}"
 
   if [[ $ID = "ubuntu" ]]; then
-    echo 'placeholder'
+    /usr/lib/postgresql/9.6/bin/pg_isready -U "$PGUSER" -q
   elif [ "$ID" = "centos" ]; then
     /usr/pgsql-9.6/bin/pg_isready -U "$PGUSER" -q
-    DATA=$?
   fi
 
+  DATA=$?
 }
 
 function check_postgresql {
