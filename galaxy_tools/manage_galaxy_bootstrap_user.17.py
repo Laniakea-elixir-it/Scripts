@@ -19,7 +19,7 @@ Usage:
 
 import sys
 sys.path.insert(1,'/home/galaxy/galaxy')
-sys.path.insert(1,'/home/galaxy/galaxy')
+sys.path.insert(1,'/home/galaxy/galaxy/lib')
 
 from scripts.db_shell import *
 from galaxy.util.bunch import Bunch
