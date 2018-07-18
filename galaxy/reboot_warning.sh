@@ -6,8 +6,6 @@ SUBJECT="[Reboot] Your Galaxy server at $IPADDR has been restarted."
 MAILADDR="ma.tangaro@gmail.com"
 MAILFROM="laniakea@elixir-italy.org"
 
-#"elixir-italy.galaxy.refdata server was rebooted at: $(date)" | /usr/bin/mail -s "[reboot] elixir-italy.galaxy.refdata"  ma.tangaro@gmail.com
-
 #________________________________
 if [ "$EUID" -ne 0 ]
   then echo "Please run as root"
