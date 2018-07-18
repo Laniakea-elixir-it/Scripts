@@ -25,7 +25,7 @@ fi
 function install_mail {
 
   if [[ $ID = "ubuntu" ]]; then
-    apt-get install -y mailutils
+    DEBIAN_FRONTEND=noninteractive apt-get install -yq mailutils
   elif [[ $ID = "centos" ]]; then
     yum install -y mailx
   else
@@ -93,11 +93,9 @@ fi
 
 install_mail
 
-#echo "Please ssh into your Galaxy instance: ssh -i <private_key> galaxy@$IPADDR and and follow the instructions " | mail -s "$SUBJECT" $MAILADDR -- -f $MAILFROM
-
 if [[ $ID == "ubuntu" ]]; then
 
-  echo $BODY | mail -s "$SUBJECT" $MAILADDR -- -f $MAILFROM
+  echo "$BODY" | mail -aFrom:$MAILFROM -s "$SUBJECT" $MAILADDR
 
 elif [[ $ID == 'centos' ]]; then
 
