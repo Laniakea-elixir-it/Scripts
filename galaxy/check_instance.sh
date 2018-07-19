@@ -1,8 +1,8 @@
 #!/bin/bash
 
-OS_STORAGE='IaaS'
-URL='http://90.147.170.148/galaxy'
-cryptdev_ini_file='/etc/galaxyctl/luks-cryptdev.ini'
+OS_STORAGE='encryption'
+URL='http://90.147.75.113/galaxy'
+cryptdev_ini_file='/etc/galaxy/luks-cryptdev.ini'
 
 _ok='[ OK ]'
 _fail='[ FAIL ]'
@@ -68,7 +68,7 @@ function __supervisord_status(){
     echo -e "\nSupervisord service: ${_ok}"
     return 0
   else
-    echo -e "\nSupervisord service: ${_fail}."
+    echo -e "\nSupervisord service: ${_fail}"
     echo -e "\nPlease start Galaxy: sudo galaxy-startup"
     return 1
   fi
@@ -86,15 +86,42 @@ function __galaxy_server_status(){
 # Display supervisorctl status output for Galaxy
 
 function __galaxy_status(){
-  __check_supervisord
-  code=$?  
-  if [[ $? == 0 ]]; then
+  __supervisord_status
+  code=$?
+  if [[ $code -eq "0" ]]; then
     __galaxy_server_status
   fi
 }
 
-cryptdev_ini_file='/tmp/luks-cryptdev.ini'
+#____________________________________
+# Read ini file
+function cfg.parser ()
+# http://theoldschooldevops.com/2008/02/09/bash-ini-parser/
+{
+	IFS=$'\n' && ini=( $(<$1) ) # convert to line-array
+	ini=( ${ini[*]//;*/} )      # remove comments with ;
+	ini=( ${ini[*]//\#*/} )     # remove comments with #
+	ini=( ${ini[*]/\	=/=} )  # remove tabs before =
+	ini=( ${ini[*]/=\	/=} )   # remove tabs be =
+	ini=( ${ini[*]/\ =\ /=} )   # remove anything with a space around =
+	ini=( ${ini[*]/#[/\}$'\n'cfg.section.} ) # set section prefix
+	ini=( ${ini[*]/%]/ \(} )    # convert text2function (1)
+	ini=( ${ini[*]/=/=\( } )    # convert item to array
+	ini=( ${ini[*]/%/ \)} )     # close array parenthesis
+	ini=( ${ini[*]/%\\ \)/ \\} ) # the multiline trick
+	ini=( ${ini[*]/%\( \)/\(\) \{} ) # convert text2function (2)
+	ini=( ${ini[*]/%\} \)/\}} ) # remove extra parenthesis
+	ini[0]="" # remove first element
+	ini[${#ini[*]} + 1]='}'    # add the last brace
+	eval "$(echo "${ini[*]}")" # eval the result
+}
 
+function __read_ini_file(){
+
+  cfg.parser $cryptdev_ini_file
+  cfg.section.luks
+
+}
 
 #____________________________________
 # Display dmsetup info
@@ -105,12 +132,13 @@ function __dmsetup_info(){
 
 #____________________________________
 # check encrypted storage mounted
-function __cryptdev_status(){
+function __check_encrypted_device(){
 
   # check if $mountpoint is a mount point
   mountpoint $mountpoint &> /dev/null
   if [ $? -ne 0 ]; then
     echo -e "\n${mountpoint} is not a mount point."
+    echo -e "Please open your device typing: sudo luksctl open"
     exit 1
   fi
 
@@ -132,7 +160,6 @@ function __cryptdev_status(){
     echo -e "\nEncrypted volume: [ OK ]"
   else
     echo -e "\nEncrypted volume: [ FAIL ]"
-    echo -e "\nPlease open the encrypted volume with: sudo luksctl open"
   fi
 }
 
@@ -141,10 +168,12 @@ function __cryptdev_status(){
 
 __galaxy_url_status
 code=$?
-if [[ $code -ne 0 ]]; then
+if [[ $code -ne 10 ]]; then
   __galaxy_status
 fi
 
 if [[ $OS_STORAGE == 'encryption' ]]; then
-  __cryptdev_status
+  echo -e "\nCheck encrypted volume"
+  __read_ini_file
+  __check_encrypted_device
 fi
