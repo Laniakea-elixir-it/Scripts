@@ -1,7 +1,7 @@
 #!/bin/bash
 
 OS_STORAGE='encryption'
-URL='http://90.147.75.113/galaxy'
+URL='http://90.147.170.148/galaxy'
 cryptdev_ini_file='/etc/galaxy/luks-cryptdev.ini'
 
 _ok='[ OK ]'
@@ -80,6 +80,7 @@ function __supervisord_status(){
 function __galaxy_server_status(){
   supervisorctl status galaxy:
   echo -e "\nPlese restart Galaxy using: sudo supervisorctl restart galaxy:"
+  echo -e "You can also try to force restart with: sudo galaxyctl restart galaxy --force"
 }
 
 #____________________________________
@@ -91,6 +92,15 @@ function __galaxy_status(){
   if [[ $code -eq "0" ]]; then
     __galaxy_server_status
   fi
+}
+
+#____________________________________
+# Check ini file
+function __stat_ini_file(){
+  if [[ ! -e $cryptdev_ini_file ]]; then
+    echo -e "There is no $cryptdev_ini_file configuration file: ${_fail}"
+    exit
+  fi  
 }
 
 #____________________________________
@@ -168,12 +178,13 @@ function __check_encrypted_device(){
 
 __galaxy_url_status
 code=$?
-if [[ $code -ne 10 ]]; then
+if [[ $code -ne 0 ]]; then
   __galaxy_status
 fi
 
 if [[ $OS_STORAGE == 'encryption' ]]; then
-  echo -e "\nCheck encrypted volume"
+  echo -e "\nChecking the encrypted volume:"
+  __stat_ini_file
   __read_ini_file
   __check_encrypted_device
 fi
