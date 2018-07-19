@@ -1,21 +1,11 @@
 #!/bin/bash
 
-OS_STORAGE='encryption'
-URL='http://90.147.170.148/galaxy'
+OS_STORAGE='{{ os_storage }}'
+URL='{{ galaxy_instance_url }}'
 cryptdev_ini_file='/etc/galaxy/luks-cryptdev.ini'
 
 _ok='[ OK ]'
 _fail='[ FAIL ]'
-
-#____________________________________
-# Script needs superuser
-
-function __su_check(){
-  if [[ $(/usr/bin/id -u) -ne 0 ]]; then
-    echo -e "[Error] Not running as root."
-    exit
- fi
-}
 
 #____________________________________
 # Check if Galaxy instance by curl
@@ -99,7 +89,7 @@ function __galaxy_status(){
 function __stat_ini_file(){
   if [[ ! -e $cryptdev_ini_file ]]; then
     echo -e "There is no $cryptdev_ini_file configuration file: ${_fail}"
-    exit
+    return 1
   fi  
 }
 
@@ -149,7 +139,7 @@ function __check_encrypted_device(){
   if [ $? -ne 0 ]; then
     echo -e "\n${mountpoint} is not a mount point."
     echo -e "Please open your device typing: sudo luksctl open"
-    exit 1
+    return 1
   fi
 
   # if $mountpoint is a mount point 
