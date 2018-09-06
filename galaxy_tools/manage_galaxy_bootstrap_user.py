@@ -21,7 +21,7 @@ import sys
 sys.path.insert(1,'/home/galaxy/galaxy')
 sys.path.insert(1,'/home/galaxy/galaxy/lib')
 
-from galaxy.model import User, APIKeys
+from galaxy.model import User, APIKeys, Role
 from galaxy.model.mapping import init
 from galaxy.model.orm.scripts import get_config
 import argparse
