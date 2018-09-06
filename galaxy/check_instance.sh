@@ -8,6 +8,16 @@ _ok='[ OK ]'
 _fail='[ FAIL ]'
 
 #____________________________________
+# Script needs superuser
+
+function __su_check(){
+  if [[ $(/usr/bin/id -u) -ne 0 ]]; then
+    echo -e "[Error] Not running as root."
+    exit
+ fi
+}
+
+#____________________________________
 # Check if Galaxy instance by curl
 function __galaxy_curl(){
   if curl -s --head  --request GET ${URL} | grep "200 OK" > /dev/null
@@ -89,7 +99,7 @@ function __galaxy_status(){
 function __stat_ini_file(){
   if [[ ! -e $cryptdev_ini_file ]]; then
     echo -e "There is no $cryptdev_ini_file configuration file: ${_fail}"
-    return 1
+    exit
   fi  
 }
 
@@ -98,6 +108,7 @@ function __stat_ini_file(){
 function cfg.parser ()
 # http://theoldschooldevops.com/2008/02/09/bash-ini-parser/
 {
+
 	IFS=$'\n' && ini=( $(<$1) ) # convert to line-array
 	ini=( ${ini[*]//;*/} )      # remove comments with ;
 	ini=( ${ini[*]//\#*/} )     # remove comments with #
@@ -139,7 +150,7 @@ function __check_encrypted_device(){
   if [ $? -ne 0 ]; then
     echo -e "\n${mountpoint} is not a mount point."
     echo -e "Please open your device typing: sudo luksctl open"
-    return 1
+    exit 1
   fi
 
   # if $mountpoint is a mount point 
