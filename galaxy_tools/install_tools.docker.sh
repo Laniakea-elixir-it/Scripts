@@ -29,6 +29,15 @@ if [[ -r /etc/os-release ]]; then
     . /etc/os-release
 fi
 
+#____________________________________
+# Script needs superuser
+function su_check {
+  if [[ $(/usr/bin/id -u) -ne 0 ]]; then
+    echo -e "[Error] Not running as root."
+    exit
+ fi
+}
+
 #________________________________
 # Check if postgresql is running
 function start_postgresql_vm {
@@ -124,29 +133,32 @@ function install_ephemeris {
 #________________________________
 # Main section
 
+# Script requires superuser to run
+su_check
+
 # clean logs
 echo "Clean logs"
 rm $install_log
 rm $install_pidfile
 
-# install tools
+# install ephemeris
 install_ephemeris
 
-# ensure Galaxy is not running through supervisord
+# check PostgreSQL
+check_postgresql
+
+# If Galaxy is running we install tools, otherwise we run int through run.sh
 if pgrep "supervisord" > /dev/null
 then
-    echo "Galaxy managed using supervisord. Shutting it down."
-    supervisorctl stop galaxy:
+
+  echo "Galaxy managed using supervisord. Shutting it down."
+  supervisorctl stop galaxy:
 fi
 
 # ensure galaxy is not running on run.sh and 8080 port
 check_lsof
 echo "Kill run.sh Galaxy instance listening on 8080 port"
 kill -9 $(lsof -t -i :8080)
-# install lsof to be sure
-
-# check PostgreSQL
-check_postgresql
 
 # create log file
 sudo -E -u $GALAXY_USER touch $install_log
@@ -161,7 +173,17 @@ galaxy_install_pid=`cat $install_pidfile`
 galaxy-wait -g http://localhost:$PORT -v --timeout 120
 
 # install tools
-shed-tools install -g "http://localhost:$PORT" -a $1 -t "$2"
+#shed-tools install -g "http://localhost:$PORT" -a $1 -t "$2"
+# workaround to https://github.com/galaxyproject/ephemeris/issues/98
+counter=0
+output=$(shed-tools install -g "http://localhost:$PORT" -a $1 -t "$2" 2>&1)
+while [[ $output == *'ConnectionError'* ]]; do
+  echo $output
+  ((counter++))
+  echo "Retry: $counter"
+  sleep 60 # wait for unfinished operations
+  output=$(shed-tools install -g "http://localhost:$PORT" -a $1 -t "$2" 2>&1)
+done
 
 exit_code=$?
 
@@ -169,15 +191,19 @@ if [ $exit_code != 0 ] ; then
     exit $exit_code
 fi
 
-# stop Galaxy
-echo "stopping Galaxy"
-sudo -E -u $GALAXY_USER $GALAXY/run.sh --stop $install_pidfile
+# stop Galaxy if it was not running before
+if ! pgrep "supervisord" > /dev/null
+then
+  echo "stopping Galaxy"
+  sudo -E -u $GALAXY_USER $GALAXY/run.sh --stop $install_pidfile
 
-# stop postgresql on docker. Keep it running on vm
-if [[ $ID = "ubuntu" ]]; then
-  echo "[Ubuntu][Docker] Stop postgresql."
-  service stop postgresql
-elif [[ $ID = "centos" ]]; then
-  echo "[EL][Docker] Stop postgresql"
-  sudo -Hiu postgres /usr/pgsql-${postgresql_version}/bin/pg_ctl -D /var/lib/pgsql/${postgresql_version}/data stop
+  # stop postgresql on docker. Keep it running on vm
+  if [[ $ID = "ubuntu" ]]; then
+    echo "[Ubuntu][Docker] Stop postgresql."
+    service stop postgresql
+  elif [[ $ID = "centos" ]]; then
+    echo "[EL][Docker] Stop postgresql"
+    sudo -Hiu postgres /usr/pgsql-${postgresql_version}/bin/pg_ctl -D /var/lib/pgsql/${postgresql_version}/data stop
+  fi
+
 fi
