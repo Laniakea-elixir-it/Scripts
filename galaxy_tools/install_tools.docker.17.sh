@@ -1,7 +1,6 @@
 #!/bin/bash
 
 # ELIXIR-ITALY
-# INDIGO-DataCloud
 # IBIOM-CNR
 #
 # Contributors:
@@ -20,9 +19,8 @@ now=$(date +"%b-%d-%y-%H%M%S")
 install_log="/var/log/galaxy/galaxy_tools_install_$now.log"
 install_pidfile='/var/log/galaxy/galaxy_tools_install.pid'
 #---
-postgresql_version='9.6'
-#---
-ephemeris_version='0.9.0'
+#ephemeris_version='0.9.0'
+ephemeris_version='0.7.0'
 
 #________________________________
 # Get Distribution
@@ -36,14 +34,14 @@ function start_postgresql_vm {
 
   if [[ $ID = "ubuntu" ]]; then
     echo "[Ubuntu][VM] Check postgresql."
-    if [[ $VERSION_ID = "16.04" ]]; then
-      service start postgresql
+    if [[ $VERSION_ID = "14.04" ]]; then
+      service postgresql start
     else
       systemctl start postgresql
     fi
   elif [[ $ID = "centos" ]]; then
       echo "[EL][VM] Check postgresql"
-      systemctl start postgresql-${postgresql_version}
+      systemctl start postgresql-9.6
   fi
 }
 
@@ -54,9 +52,9 @@ function start_postgresql_docker {
     service start postgresql
   elif [ "$ID" = "centos" ]; then
     echo "[EL][Docker] Check postgresql"
-    if [[ ! -f /var/lib/pgsql/${postgresql_version}/data/postmaster.pid ]]; then
+    if [[ ! -f /var/lib/pgsql/9.6/data/postmaster.pid ]]; then
       echo "Starting postgres on centos"
-      sudo -E -u postgres /usr/pgsql-${postgresql_version}/bin/pg_ctl -D /var/lib/pgsql/${postgresql_version}/data -w start
+      sudo -E -u postgres /usr/pgsql-9.6/bin/pg_ctl -D /var/lib/pgsql/9.6/data -w start
     fi
   fi
 
@@ -67,12 +65,12 @@ function check_postgres_status {
   PGUSER="${PGUSER:="postgres"}"
 
   if [[ $ID = "ubuntu" ]]; then
-    echo 'placeholder'
+    /usr/lib/postgresql/9.6/bin/pg_isready -U "$PGUSER" -q
   elif [ "$ID" = "centos" ]; then
-    /usr/pgsql-${postgresql_version}/bin/pg_isready -U "$PGUSER" -q
-    DATA=$?
+    /usr/pgsql-9.6/bin/pg_isready -U "$PGUSER" -q
   fi
 
+  DATA=$?
 }
 
 function check_postgresql {
@@ -172,7 +170,7 @@ done
 # install tools
 install_ephemeris
 
-shed-tools install -g "http://localhost:$PORT" -a $1 -t "$2"
+shed-install -g "http://localhost:$PORT" -a $1 -t "$2"
 
 exit_code=$?
 
@@ -190,6 +188,6 @@ if [[ $ID = "ubuntu" ]]; then
   service stop postgresql
 elif [[ $ID = "centos" ]]; then
   echo "[EL][Docker] Stop postgresql"
-  sudo -E -u postgres /usr/pgsql-${postgresql_version}/bin/pg_ctl -D /var/lib/pgsql/${postgresql_version}/data stop
+  sudo -E -u postgres /usr/pgsql-9.6/bin/pg_ctl -D /var/lib/pgsql/9.6/data stop
 fi
 
