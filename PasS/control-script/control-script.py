@@ -16,6 +16,7 @@ def cli_options():
 
   parser.add_argument('-m', '--mail-address', dest='mail_address', help='Mail to send output')
   parser.add_argument('-t', '--polling-timeout', dest='polling_time', default=300, help='Polling timeout')
+  parser.add_argument('-r', '--tosca-template', dest='tosca_template', help='TOSCA tempalte to be used')
   parser.add_argument('-c', '--healh_check_path', dest='health_check_path', help='Orchestrator health check script path')
   parser.add_argument('-u', '--orchestrator-url', dest='orchestrator_url', help='Orchestrator URL')
 
@@ -44,20 +45,20 @@ def check_orchestrator_status(path, url):
   return status
 
 #______________________________________
-def depcreate():
+def depcreate(tosca, url):
 
-  command="/usr/bin/orchent depcreate ./node_with_image.yaml '{}'"
+  command="/usr/bin/orchent depcreate %s '{}' -u %s" % (tosca, url)
   logging.debug('%s' % command)
   
   stdout, stderr, status = run_command(command)
-  
+  print stdout 
   temp = stdout.split("Deployment",1)[1]
   
   dep_uuid = temp.splitlines()[0].strip(" []:")
-  logging.debug('%s'% dep_uuid)
+  logging.debug('[Deployment] Uuid: %s'% dep_uuid)
   
   dep_status = temp.splitlines()[1].strip(" status: ")
-  logging.debug('%s'% dep_status)
+  logging.debug('[Deployment] Uuid: %s, status: %s' % (dep_uuid, dep_status))
 
   return dep_uuid, dep_status
 
@@ -91,7 +92,7 @@ def get_status(dep_uuid):
   pattern = "doesn't exist"
   match = re.search(pattern, stdout)
   if (match is not None): 
-    logging.debug('Deployment already deleted!')
+    logging.debug('Deployment with uuid %s already deleted!' % dep_uuid)
     return 'DELETE_COMPLETE'
 
   temp = stdout.split("Deployment",1)[1]
@@ -137,7 +138,7 @@ def indigo_paas_checker():
     return
 
   # Start PaaS test deployment
-  dep_uuid, dep_status = depcreate()
+  dep_uuid, dep_status = depcreate(options.tosca_template, options.orchestrator_url)
  
   # Update deployment status
   time.sleep(float(options.polling_time))
@@ -148,8 +149,8 @@ def indigo_paas_checker():
     time.sleep(float(options.polling_time))
     dep_status = get_status(dep_uuid)
     count = count + 1
-    logging.debug('[Deployment] Update n. %s, status: %s' % (count, dep_status))
-  logging.debug('Deployment finished with status: %s' % dep_status)
+    logging.debug('[Deployment] Update n. %s, uuid: %s, status: %s.' % (count, dep_uuid, dep_status))
+  logging.debug('Deployment uuid %s finished with status: %s' % (dep_uuid, dep_status))
 
   # wait some secs.
   #time.sleep(10)
@@ -170,18 +171,18 @@ def indigo_paas_checker():
   pattern='successfully triggered'
   match = re.search(pattern, final_out)
   while(match is None): 
-    logging.debug('Deployment delete failed. Wait for 2 minutes and retry.')
+    logging.debug('Deployment uuid %s delete failed. Wait for 2 minutes and retry.' % dep_uuid)
     time.sleep(120)
     del_count = del_count + 1
-    logging.debug('Delete retry n. %s.' % del_count)
+    logging.debug('Delete uuid %s retry n. %s.' % (dep_uuid, del_count))
     final_out, final_err, final_status = depdel(dep_uuid)
     match = re.search(pattern, repl)  
-  logging.debug('Deployment delete: %s' % final_out)
+  logging.debug('Deployment uuid %s delete: %s' % (dep_uuid, final_out))
 
   # Notify delete failed.
   # Check deployment status during delete in progress
   dep_status = get_status(dep_uuid)
-  logging.debug('[Deletion] Deployment status: %s' % dep_status)
+  logging.debug('[Deletion] Deployment uuid %s status: %s' % (dep_uuid, dep_status))
 
   # reset counter
   count = 0
@@ -189,7 +190,7 @@ def indigo_paas_checker():
     time.sleep(60)
     dep_status = get_status(dep_uuid)
     count = count + 1
-    logging.debug('[Deletion] Update n. %s, status: %s' % (count, dep_status))
+    logging.debug('[Deletion] Update n. %s, uuid %s, status: %s.' % (count, dep_uuid, dep_status))
   logging.debug('Delete finished.')
 
   # Send report if create failed
