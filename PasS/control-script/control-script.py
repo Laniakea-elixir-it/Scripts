@@ -16,6 +16,7 @@ def cli_options():
 
   parser.add_argument('-m', '--mail-address', dest='mail_address', help='Mail to send output')
   parser.add_argument('-t', '--polling-timeout', dest='polling_time', default=300, help='Polling timeout')
+  parser.add_argument('-c', '--healh_check_path', dest='health_check_path', help='Orchestrator health check script path')
   parser.add_argument('-u', '--orchestrator-url', dest='orchestrator_url', help='Orchestrator URL')
 
   return parser.parse_args()
@@ -32,9 +33,9 @@ def run_command(cmd):
   return stdout, stderr, status
 
 #______________________________________
-def check_orchestrator_status(url):
+def check_orchestrator_status(path, url):
 
-  command = './health-check.sh -u %s -t 10 -v' % url
+  command = '%s -u %s -t 10 -v' % (path, url)
 
   logging.debug('Check Orchestrator status at: %s' % url)
 
@@ -126,7 +127,7 @@ def indigo_paas_checker():
   #print depls_out
 
   # Check orchestrator status.
-  orchestrator_status = check_orchestrator_status(options.orchestrator_url)
+  orchestrator_status = check_orchestrator_status(options.health_check_path, options.orchestrator_url)
   if(orchestrator_status is not 0):
     sendmail = 'echo "Unable to contact the orchestrator at %s" | /usr/bin/mail -s "[INDIGO PaaS] check at: $(date)" %s' % (options.orchestrator_url, options.mail_address)
     run_command(sendmail)
