@@ -23,6 +23,9 @@ Run
 
 ``cronatab -e``
 
-and add this line:
+and add these lines:
 
-``0 */2 * * * /opt/control-script/control-script.sh``
+``
+MAILTO=""
+0 */2 * * * /opt/control-script/control-script.sh > /dev/null 2>&1
+``
