@@ -1,5 +1,5 @@
 #!/bin/bash
-LOGFILE="/tmp/recover.log"
+LOGFILE="/tmprecover_s$(date +"-%b-%d-%y-%H%M%S").log"
 
 # Restart cvmfs
 sudo systemctl restart autofs > $LOGFILE 2>&1 && sudo /usr/bin/cvmfs_config killall > $LOGFILE 2>&1 && sudo /usr/bin/cvmfs_config probe
