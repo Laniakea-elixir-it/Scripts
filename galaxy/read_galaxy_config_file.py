@@ -41,7 +41,7 @@ def read_galaxy_config_file():
 
     if configParser.has_option(options.section, options.option):
       config = configParser.get(options.section , options.option)
-      print config
+      print (config)
     else:
       raise Exception('No %s section with %s option in %s' % (options.section, options.option, options.config_file))
 
@@ -52,7 +52,7 @@ def read_galaxy_config_file():
       try:
         config =  yaml.load(stream)
         par = config[options.section][options.option]
-        print par
+        print (par)
       except yaml.YAMLError as exc:
         raise Exception('No %s section with %s option in %s' % (options.section, options.option, options.config_file))
 
