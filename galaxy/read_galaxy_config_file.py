@@ -50,7 +50,7 @@ def read_galaxy_config_file():
     import yaml
     with open(options.config_file, 'r') as stream:
       try:
-        config =  yaml.load(stream)
+        config =  yaml.safe_load(stream)
         par = config[options.section][options.option]
         print par
       except yaml.YAMLError as exc:
