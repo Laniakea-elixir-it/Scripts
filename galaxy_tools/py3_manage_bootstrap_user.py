@@ -12,9 +12,9 @@ new_path.extend(sys.path[1:])
 sys.path = new_path
 
 import galaxy.config
-from galaxy import eggs
-eggs.require("SQLAlchemy >= 0.4")
-eggs.require("mercurial")
+# from galaxy import eggs
+# eggs.require("SQLAlchemy >= 0.4")
+# eggs.require("mercurial")
 from galaxy.model import mapping
 
 import yaml
@@ -209,7 +209,7 @@ def get_bootstrap_app(ini_file):
             config_dict[key] = value
     except:
         with open(ini_file, 'r') as ymlfile:
-            cfg = yaml.load(ymlfile)
+            cfg = yaml.full_load(ymlfile)
         config_dict = cfg['galaxy']
     config = galaxy.config.Configuration(**config_dict)
     app = BootstrapGalaxyApplication(config)
