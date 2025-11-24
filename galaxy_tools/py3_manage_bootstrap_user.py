@@ -52,7 +52,7 @@ class BootstrapGalaxyApplication(object):
     @property
     def sa_session(self):
         """Returns a SQLAlchemy session."""
-        return self.model.context.current
+        return self.model.context
 
     def shutdown(self):
         pass
