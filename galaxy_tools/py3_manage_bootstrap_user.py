@@ -114,6 +114,7 @@ def create_api_key(app, user, preset_api_key=None):
     new_key.key = api_key
     app.sa_session.add(new_key)
     app.sa_session.flush()
+    app.sa_session.commit()
     return api_key
 
 
